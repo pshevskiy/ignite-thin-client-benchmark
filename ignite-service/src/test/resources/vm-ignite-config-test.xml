@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+
+    <bean id="igniteConfiguration" class="org.apache.ignite.configuration.IgniteConfiguration" primary="true">
+
+        <property name="igniteInstanceName" value="DPL_GRID%DplGridNodeName"/>
+
+        <property name="clientMode" value="false"/>
+        <property name="localHost" value="127.0.0.1"/>
+
+        <property name="discoverySpi" ref="discoverySpi"/>
+        <property name="communicationSpi" ref="communicationSpi"/>
+
+        <property name="connectorConfiguration" ref="connectorConfiguration"/>
+
+        <property name="peerClassLoadingEnabled" value="true"/>
+
+        <property name="clientConnectorConfiguration" ref="clientConnector"/>
+
+        <property name="binaryConfiguration">
+            <bean class="org.apache.ignite.configuration.BinaryConfiguration">
+                <property name="compactFooter" value="false"/>
+            </bean>
+        </property>
+
+        <property name="transactionConfiguration">
+            <bean class="org.apache.ignite.configuration.TransactionConfiguration">
+                <property name="defaultTxIsolation" value="READ_COMMITTED"/>
+                <property name="defaultTxTimeout" value="300000"/>
+            </bean>
+        </property>
+
+        <property name="lifecycleBeans">
+            <array merge="true">
+            </array>
+        </property>
+    </bean>
+
+    <bean id="clientConnector" class="org.apache.ignite.configuration.ClientConnectorConfiguration">
+        <property name="thinClientConfiguration" ref="thinClientConfiguration"/>
+    </bean>
+    <bean id="thinClientConfiguration" class="org.apache.ignite.configuration.ThinClientConfiguration">
+        <property name="maxActiveComputeTasksPerConnection" value="5"/>
+        <property name="maxActiveTxPerConnection" value="5"/>
+    </bean>
+
+
+    <bean id="discoverySpi" class="org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi">
+        <property name="localAddress" value="127.0.0.1"/>
+        <property name="localPort" value="47500"/>
+        <property name="localPortRange" value="100"/>
+        <property name="ipFinder" ref="ipFinder"/>
+    </bean>
+
+    <bean id="communicationSpi" class="org.apache.ignite.spi.communication.tcp.TcpCommunicationSpi">
+        <property name="localAddress" value="127.0.0.1"/>
+        <property name="localPort" value="47100"/>
+        <property name="localPortRange" value="100"/>
+        <property name="sharedMemoryPort" value="-1"/>
+        <property name="connectionsPerNode" value="8"/>
+    </bean>
+
+    <bean id="connectorConfiguration" class="org.apache.ignite.configuration.ConnectorConfiguration">
+        <property name="sslEnabled" value="false"/>
+        <property name="sslClientAuth" value="false"/>
+        <property name="idleTimeout" value="180000"/>
+    </bean>
+
+
+    <bean id="ipFinder" class="org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder">
+        <property name="addresses">
+            <list>
+                <!-- In distributed environment, replace with actual host IP address. -->
+                <value>127.0.0.1</value>
+            </list>
+        </property>
+    </bean>
+
+</beans>

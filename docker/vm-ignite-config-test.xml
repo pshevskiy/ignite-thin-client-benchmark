@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+
+    <bean id="igniteConfiguration" class="org.apache.ignite.configuration.IgniteConfiguration" primary="true">
+
+        <property name="igniteInstanceName" value="DPL_GRID%DplGridNodeName"/>
+
+        <property name="clientMode" value="false"/>
+        <property name="localHost" value="#{systemProperties['localhost']}"/>
+
+        <property name="discoverySpi" ref="discoverySpi"/>
+        <property name="communicationSpi" ref="communicationSpi"/>
+
+        <property name="connectorConfiguration" ref="connectorConfiguration"/>
+
+        <property name="peerClassLoadingEnabled" value="true"/>
+
+        <property name="clientConnectorConfiguration" ref="clientConnector"/>
+
+        <property name="binaryConfiguration">
+            <bean class="org.apache.ignite.configuration.BinaryConfiguration">
+                <property name="compactFooter" value="false"/>
+            </bean>
+        </property>
+
+        <property name="dataStorageConfiguration" ref="dataStorageConfiguration"/>
+
+        <property name="transactionConfiguration">
+            <bean class="org.apache.ignite.configuration.TransactionConfiguration">
+                <property name="defaultTxIsolation" value="READ_COMMITTED"/>
+                <property name="defaultTxTimeout" value="300000"/>
+            </bean>
+        </property>
+
+        <property name="serviceConfiguration">
+            <list>
+                <bean class="org.apache.ignite.services.ServiceConfiguration">
+                    <property name="name" value="PutService"/>
+                    <property name="maxPerNodeCount" value="1"/>
+                    <property name="totalCount" value="0"/>
+                    <property name="service">
+                        <bean class="com.pshevskiy.ignite.server.tasks.AtomicPutService"/>
+                    </property>
+                </bean>
+            </list>
+        </property>
+
+
+        <property name="cacheConfiguration">
+            <list>
+                <bean class="org.apache.ignite.configuration.CacheConfiguration">
+                    <property name="name" value="DATA_*"/>
+                    <property name="cacheMode" value="PARTITIONED" />
+                    <property name="backups" value="1" />
+                    <property name="atomicityMode" value="TRANSACTIONAL"/>
+                    <property name="rebalanceMode" value="ASYNC"/>
+                    <property name="writeSynchronizationMode" value="FULL_SYNC"/>
+                    <property name="maxConcurrentAsyncOperations" value="0"/>
+                    <property name="statisticsEnabled" value="true"/>
+                    <property name="groupName" value="cache_group"/>
+                    <property name="affinity">
+                        <bean class="org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction">
+                            <property name="partitions" value="1024"/>
+                        </bean>
+                    </property>
+                </bean>
+                <bean class="org.apache.ignite.configuration.CacheConfiguration">
+                    <property name="name" value="AFFINITY_*"/>
+                    <property name="cacheMode" value="PARTITIONED" />
+                    <property name="backups" value="1" />
+                    <property name="atomicityMode" value="TRANSACTIONAL"/>
+                    <property name="rebalanceMode" value="ASYNC"/>
+                    <property name="writeSynchronizationMode" value="FULL_SYNC"/>
+                    <property name="maxConcurrentAsyncOperations" value="0"/>
+                    <property name="statisticsEnabled" value="true"/>
+                    <property name="groupName" value="cache_group"/>
+                    <property name="affinity">
+                        <bean class="org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction">
+                            <property name="partitions" value="1024"/>
+
+                        </bean>
+                    </property>
+                    <property name="queryEntities">
+                        <list>
+                            <bean class="org.apache.ignite.cache.QueryEntity">
+                                <constructor-arg value="org.apache.ignite.cache.affinity.AffinityKey"/>
+                                <constructor-arg value="ru.sbrf.ucpcloud.rsccache.index.Entity"/>
+                                <property name="fields">
+                                    <map>
+                                        <entry key="collocationId" value="java.lang.String"/>
+                                    </map>
+                                </property>
+                                <property name="indexes">
+                                    <set>
+                                        <bean class="org.apache.ignite.cache.QueryIndex">
+                                            <constructor-arg value="collocationId"/>
+                                        </bean>
+                                    </set>
+                                </property>
+                            </bean>
+                        </list>
+                    </property>
+                </bean>
+
+
+            </list>
+        </property>
+
+        <property name="lifecycleBeans">
+            <array merge="true">
+            </array>
+        </property>
+    </bean>
+
+    <bean id="clientConnector" class="org.apache.ignite.configuration.ClientConnectorConfiguration">
+        <property name="thinClientConfiguration" ref="thinClientConfiguration"/>
+    </bean>
+    <bean id="thinClientConfiguration" class="org.apache.ignite.configuration.ThinClientConfiguration">
+        <property name="maxActiveComputeTasksPerConnection" value="5"/>
+        <property name="maxActiveTxPerConnection" value="5"/>
+    </bean>
+
+
+    <bean id="discoverySpi" class="org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi">
+        <property name="ipFinder" ref="ipFinder"/>
+    </bean>
+
+    <bean id="connectorConfiguration" class="org.apache.ignite.configuration.ConnectorConfiguration">
+        <property name="sslEnabled" value="false"/>
+        <property name="sslClientAuth" value="false"/>
+        <property name="idleTimeout" value="180000"/>
+    </bean>
+
+    <bean id="communicationSpi" class="org.apache.ignite.spi.communication.tcp.TcpCommunicationSpi">
+        <property name="sharedMemoryPort" value="-1"/>
+        <!-- Sets connect timeout used when establishing connection with remote nodes. -->
+        <property name="connectTimeout" value="20000"/>
+
+        <!-- Sets maximum connect timeout. If handshake is not established within connect timeout, then SPI tries to repeat handshake procedure with increased connect timeout. -->
+        <property name="maxConnectTimeout" value="60000"/>
+
+        <!-- Sets maximum number of reconnect attempts used when establishing connection with remote nodes. -->
+        <property name="reconnectCount" value="2"/>
+        <!-- Sets maximum idle connection timeout upon which a connection to client will be closed. -->
+        <property name="idleConnectionTimeout" value="600000"/>
+
+        <!-- Sets socket write timeout for TCP connection. -->
+        <property name="socketWriteTimeout" value="30000"/>
+
+        <!-- Sets the count of selectors te be used in TCP server. -->
+        <property name="selectorsCount" value="18"/>
+
+        <!-- Sets number of connections to each remote node. -->
+        <property name="connectionsPerNode" value="1"/>
+
+        <!-- Sets message queue limit for incoming and outgoing messages. -->
+        <property name="messageQueueLimit" value="0"/>
+
+        <property name="usePairedConnections" value="false"/>
+        <property name="forceClientToServerConnections" value="true"/>
+    </bean>
+
+
+    <bean id="ipFinder" class="org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder">
+        <property name="addresses">
+            <list>
+                <!-- In distributed environment, replace with actual host IP address. -->
+                <value>ignite_node_1:47500..47509</value>
+                <value>ignite_node_2:47500..47509</value>
+            </list>
+        </property>
+    </bean>
+
+
+    <bean id="dataStorageConfiguration" class="org.apache.ignite.configuration.DataStorageConfiguration">
+        <property name="defaultDataRegionConfiguration" ref="defaultDataRegionConfiguration"/>
+    </bean>
+
+    <bean id="defaultDataRegionConfiguration" class="org.apache.ignite.configuration.DataRegionConfiguration">
+        <property name="maxSize" value="1073741824"/>
+        <property name="persistenceEnabled" value="false"/>
+        <property name="checkpointPageBufferSize" value="1000"/>
+    </bean>
+
+
+</beans>
